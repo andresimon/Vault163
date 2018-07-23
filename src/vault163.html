@@ -1,0 +1,617 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <title>Vault 163</title>
+  
+  <link rel="stylesheet" href="css/vault163.css">
+  
+</head>
+
+<body>
+
+	<div id="stage">
+
+		<div id="divLocation">
+			<h1 id="location_description">Vault 163</h1>
+			<p id="location_description1"></p>
+		</div>
+
+		<div id="divImage">
+			<img src="" >
+
+			<div id="divLeftNavigator" class="divNavigator">
+				<a class="navigatorLink" href="#" rel="west"></a>	
+			</div>
+			<div id="divUpNavigator" class="divNavigator">
+				<a class="navigatorLink" href="#" rel="north"></a>
+			</div>
+			<div id="divRightNavigator" class="divNavigator">
+				<a class="navigatorLink" href="#" rel="east"></a>	
+			</div>
+			<div id="divDownNavigator" class="divNavigator">	
+				<a class="navigatorLink" href="#" rel="south"></a>
+			</div>
+			
+			<div id="divMonster">
+			</div>
+		</div>
+
+		<div id="divHUD">
+			<p id="output"></p>
+			<input id="input" type="text" autofocus> 
+			<button>enter</button>
+		</div>
+		
+	</div>
+<script>
+
+//Create the map
+var map = [];
+
+map[0] = "Communications Room";
+map[1] = "Living Quarters";
+map[2] = "Cryogenic Sleep Room";
+map[3] = "A private room";
+map[4] = "A hall";
+map[5] = "The Dining Room";
+map[6] = "The Armory";
+map[7] = "The Teleporter Room";
+map[8] = "The Coffee Shop";
+map[9] = "Internal door";
+map[12] = "Vault 163 entrance";
+map[15] = "Secret Room"
+
+// Map descriptions
+var mapDesciption = [];
+
+mapDesciption[0] = "This is the Communications Room.";
+mapDesciption[1] = "It seems that is where the crew who lived here slept.";
+mapDesciption[2] = "The Cryogenic Sleep Room. You still feel sick to come by.";
+mapDesciption[3] = "It is a private room. There is a hard equipped raider here. Luckily he did not see you.";
+mapDesciption[4] = "Just a narrow hall.";
+mapDesciption[5] = "You are in the dining roorm, but there is nothing to eat here.";
+mapDesciption[6] = "This is the Armory.";
+mapDesciption[7] = "You see a teleporter here.";
+mapDesciption[8] = "You are in the Coffee Shop,  but there is nothing to drink here.";
+mapDesciption[9] = "You see a massive metal door blocking your path.";
+mapDesciption[12] = "You are at the Vault 163 entrance.";
+mapDesciption[15] = "The teleporter transported you to a secret room. Ops, there is a <strong>DEATHCLAW</strong> here!";
+
+//Set the player's start location
+var mapLocation = 12;
+
+//Set the images
+var images = [];
+
+images[0] = "communicationRoom.jpg";
+images[1] = "livingQuarters.png";
+images[2] = "cryogenicSleep.jpg";
+images[3] = "privateRoom.jpg";
+images[4] = "aisle.jpg";
+images[5] = "diningHall.jpg";
+images[6] = "armory.jpg";
+images[7] = "teleporter.jpg";
+images[8] = "coffeeShop.jpg";
+images[9] = "cardIDDoor.png";
+images[12] = "vaultEntrance_111.jpg";
+images[15] = "deathclaw.jpg";
+
+//Set the help messages
+var helpMessages = [];
+
+helpMessages[0] = "";
+helpMessages[1] = "";
+helpMessages[2] = "";
+helpMessages[3] = "Maybe if you had a gun, you could kill the raider?";
+helpMessages[4] = "";
+helpMessages[5] = "";
+helpMessages[6] = "";
+helpMessages[7] = "It would be crazy to use the teleport without the right coordinates.";
+helpMessages[8] = "";
+helpMessages[9] = "There is a card reader that seems to control the door.";
+helpMessages[12] = "";
+helpMessages[15] = "You'll need something with a lot of firepower to kill this beast. Or use the teleporter to get out of here.";
+
+//Create the objects and set their locations
+var items = ["card", "pistol","coordinates"];
+var itemLocations = [12, 6, 0];
+
+//An array to store what the player is carrying
+var backpack = [];
+
+//Initialize the player's input
+var playersInput = "";
+
+//Initialize the gameMessage
+var gameMessage = "<br>Welcome to Vault 163! "
+gameMessage += "Try any of these words: " 
+gameMessage += "take, drop, use, help.";
+
+//Create an array of actions the game understands
+//and a variable to store the current action
+var actionsIKnow 
+  = ["help", "take", "use", "drop"];
+var action = "";
+
+//An array of items the game understands
+//and a variable to store the current item
+var itemsIKnow = ["card", "pistol", "minigun", "coordinates"];
+var item = "";
+
+// Control variables
+var doorOpened 	= false;
+var raiderDead 	= false;
+var gameOver	= false;
+
+// The Location description
+var location_description = document.getElementById("location_description");
+
+//The img element
+var image = document.querySelector("img");
+
+// The navigation elements
+var divUpNavigator = document.getElementById("divUpNavigator");
+var divDownNavigator = document.getElementById("divDownNavigator");
+var divLeftNavigator = document.getElementById("divLeftNavigator");
+var divRightNavigator = document.getElementById("divRightNavigator");
+
+var _divNavigators   = document.querySelectorAll(".divNavigator");
+for ( x =0; x<= _divNavigators.length-1; x++ )
+	_divNavigators[x].addEventListener("click", navigation_ClickHandler, false);
+
+//The input and output fields
+var output = document.querySelector("#output");
+var input = document.querySelector("#input");
+
+//The button
+var button = document.querySelector("button");
+button.style.cursor = "pointer";
+button.addEventListener("click", clickHandler, false);
+button.addEventListener("mousedown", mousedownHandler, false);
+button.addEventListener("mouseout", mouseoutHandler, false);
+
+//Listen for enter key presses
+window.addEventListener("keydown", keydownHandler, false);
+
+// Monster
+var monsterLocation;
+var monsterTimer;
+var divMonster = document.getElementById("divMonster");
+var windowTimer= window.setInterval(function(){monster_verify()},1000);
+
+//Dispay the player's location
+render();
+
+function mousedownHandler()
+{
+ button.style.background 
+   = "-webkit-linear-gradient(top, rgba(0,0,0,0.2), rgba(255,255,255,0.3))";
+ button.style.background 
+   = "-moz-linear-gradient(top, rgba(0,0,0,0.2), rgba(255,255,255,0.3))";
+ button.style.background 
+   = "linear-gradient(top, rgba(0,0,0,0.2), rgba(255,255,255,0.3))";
+button.style.color = "red";
+}
+
+function mouseoutHandler()
+{
+ button.style.background 
+   = "-webkit-linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+ button.style.background 
+   = "-moz-linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+ button.style.background 
+   = "linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+}
+
+function clickHandler()
+{
+  button.style.background 
+   = "-webkit-linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+  button.style.background 
+   = "-moz-linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+  button.style.background 
+   = "linear-gradient(top, rgba(255,255,255,0.6), rgba(0,0,0,0.2))";
+   
+  playGame();
+}
+
+function keydownHandler(event)
+{
+
+  if(event.keyCode === 13)
+  {
+    playGame();
+  }
+}
+
+function  navigation_ClickHandler()
+{
+	var direction = this.getElementsByClassName("navigatorLink")[0].attributes["rel"].value;
+
+	switch(direction)
+	{
+		case "north":	mapLocation -= 3;
+						break;
+		case "east":	mapLocation += 1;
+						break;
+		case "south":	mapLocation += 3;
+						break;	
+		case "west":	mapLocation -= 1;
+						break;
+	}	  
+	
+	// Restart monster
+	monster_start();
+	
+	// Render game
+	gameMessage = "";
+	render();
+}
+
+function playGame()
+{
+  //Get the player's input and convert it to lowercase
+  playersInput = input.value;
+  playersInput = playersInput.toLowerCase();
+  
+  //Reset these variables from the previous turn
+  gameMessage = "";
+  action = "";
+  
+  //Figure out the player's action
+  for(i = 0; i < actionsIKnow.length; i++)
+  {
+    if(playersInput.indexOf(actionsIKnow[i]) !== -1)
+    {
+      action = actionsIKnow[i];
+      console.log("player's action: " + action);
+      break;
+    }
+  }
+  
+  //Figure out the item the player wants
+  for(i = 0; i < itemsIKnow.length; i++)
+  {
+    if(playersInput.indexOf(itemsIKnow[i]) !== -1)
+    {
+      item = itemsIKnow[i];
+      console.log("player's item: " + item);
+    }
+  }
+  
+  //Choose the correct action
+  switch(action)
+  {
+
+    case "help":
+      //Display a hint if there is one for this location
+      if(helpMessages[mapLocation] !== "")
+      {
+        gameMessage = helpMessages[mapLocation] + " ";
+      }
+      gameMessage += "Try any of these words: " 
+      gameMessage += "take, drop, use.";
+      break;
+      
+    case "take":
+      takeItem()
+		  break;
+		
+		case "drop":
+		  dropItem();
+		  break;
+		  
+		case "use":
+		  useItem();
+		  break;
+    		  
+		default:
+		  gameMessage = "I don't understand that.";
+  }
+  
+  //Render the game
+  render();
+}
+
+function takeItem()
+{
+  //Find the index number of the item in the items array
+  var itemIndexNumber = items.indexOf(item);
+  
+  //Does the item exist in the game world
+  //and is it at the player's current location?
+  if(itemIndexNumber !== -1 
+  && itemLocations[itemIndexNumber] === mapLocation)
+  {
+    gameMessage = "You take the " + item + ".";
+    
+    //Add the item to the player's backpack 
+    backpack.push(item);
+   
+    //Remove the item from the game world
+    items.splice(itemIndexNumber, 1);
+    itemLocations.splice(itemIndexNumber, 1);
+          
+    //Display in the console for testing
+    console.log("World items: " + items);
+    console.log("backpack items: " + backpack);
+  }
+  else
+  {
+    //Message if you try and take an item
+    //that isn't in the current location
+    gameMessage = "You can't do that.";
+  }
+}
+
+function dropItem()
+{
+  //Try to drop the item only if the backpack isn't empty
+  if(backpack.length !== 0)
+  {
+    //Find the item's array index number in the backpack
+    var backpackIndexNumber = backpack.indexOf(item);
+	  
+	  //The item is in the backpack if backpackIndex number isn't -1
+    if(backpackIndexNumber !== -1)
+    {
+    
+     //Tell the player that the item has been dropped
+   	 gameMessage = "You drop the " + item + ".";
+     
+     //Add the item from the backpack to the game world 
+     items.push(backpack[backpackIndexNumber]);
+     itemLocations.push(mapLocation); 
+     
+     //Remove the item from the player's backpack 
+     backpack.splice(backpackIndexNumber, 1);
+    }
+    else
+    {
+      //Message if the player tries to drop
+      //something that's not in the backpack
+      gameMessage = "You can't do that.";
+    }
+  }
+  else
+  {
+    //Message if the backpack is empty
+    gameMessage = "You're not carrying anything.";
+  }
+}
+
+function useItem()
+{
+  //1. Find out if the item is in the backpack
+  
+  //Find the item's array index number in the backpack
+  var backpackIndexNumber = backpack.indexOf(item);
+       
+  //If the index number is -1, then it isn't in the backpack.
+  //Tell the player that he or she isn't carrying it.
+  if(backpackIndexNumber === -1)
+  {
+    gameMessage = "You're not carrying it.";
+  }
+  
+  //If there are no items in the backpack, then
+  //tell the player the backpack is empty
+  if(backpack.length === 0)
+  {
+    gameMessage += " Your backpack is empty";
+  }
+   
+  //2. If the item is found in the backpack
+  //figure out what to do with it
+  if(backpackIndexNumber !== -1)
+  {
+    switch(item)
+    {
+		 case "card":
+			if ( mapLocation === 9 )
+			{
+				gameMessage = "You insert the card in the reader, and the door opens.";
+				
+				// Set door as opened
+				doorOpened = true;
+				mapDesciption[9] = "This is the internal door. It is already opened.";
+				
+				//Remove the card from the player's backpack 
+				backpack.splice(backpackIndexNumber, 1);
+						
+				//Reset the location's help message
+				helpMessages[mapLocation] = "";
+				
+				// Start monster 
+				monster_start();
+			}
+			else
+			{
+				gameMessage = "It doesn't fit into anything here'";
+			}
+			break;
+			
+	    case "pistol":
+			if ( mapLocation === 3 )
+			{
+			    gameMessage = "You gave a straight shot and killed the raider. ";
+			    gameMessage += "He drops a powerful minigun." 
+			  
+				// Set raider as dead
+				raiderDead = true;
+				mapDesciption[3] = "It is a private room.";				
+				
+			    //Add the minigun to the world
+			    items.push("minigun");
+			    itemLocations.push(mapLocation);
+			  
+			    //Reset the location's help message
+			    helpMessages[mapLocation] = "";
+			}
+			else
+			{
+			    gameMessage = "It is useless. Do not waste your bullets.";
+			}
+			break;
+			  
+	    case "coordinates":
+			if ( mapLocation === 7 )
+			{
+			    // Teleport to secret room
+				mapLocation = 15;
+			}
+			else if ( mapLocation === 15 )
+			{
+				// Teleport back to Teleporter Room
+				mapLocation = 7;
+			}
+			else
+			{
+			    gameMessage = "Where ???";
+			}
+			break;
+			  
+	    case "minigun":
+			if ( mapLocation === 15 )
+			{
+				gameMessage = "You unload a hail of bullets and detonates the beast. <strong>Congratulations, the vault is safe again !!!</strong>";	
+				gameOver = true;
+				mapDesciption[15] = "";
+			}
+			else
+			{
+				gameMessage = "You shoot but nothing happens.";
+			}
+			break;
+	      
+	   }
+   }
+}
+
+function render()
+{
+	//Render the location
+	output.innerHTML = mapDesciption[mapLocation];
+	image.src = "../images/" + images[mapLocation];
+	location_description.innerHTML = map[mapLocation];
+  
+	// Render the navigation
+	renderNavigation();
+  
+	//Display an item if there's one in this location
+	//1. Loop through all the game items
+	for(var i = 0; i < items.length; i++)
+	{
+		//Find out if there's an item at this location
+		if(mapLocation === itemLocations[i])
+		{
+			//Display it
+			output.innerHTML += "<br>You see a <strong>" + items[i] + "</strong> here.";
+		}
+	}
+  
+	//Display the player's backpack contents
+	if(backpack.length !== 0)
+	{
+		output.innerHTML += "<br>You are carrying: " + backpack.join(", ");  
+	}
+  
+	//Display the game message
+	output.innerHTML += "<br><em>" + gameMessage + "</em>";
+  
+	//Clear the input field
+	input.value = "";
+	input.focus();
+	
+	// If is Game Over
+	if ( gameOver ) game_Over();
+
+}
+
+function renderNavigation()
+{
+	var _up, _down, _left, _right = false;
+	 
+	var arrayNavigationDivs = document.querySelectorAll(".divNavigator");
+    var divQtd = arrayNavigationDivs.length;
+    for ( i=0; i<= divQtd-1; i++)
+    {
+		var navigationDiv = arrayNavigationDivs[i];
+        navigationDiv.style.display = "none";
+    }
+	
+	if ( mapLocation == 12 ) //Entrance - only path avaiable is north
+	{
+		divUpNavigator.style.display = "block";
+	}
+	else if ( mapLocation == 9 ) // First room after Entrance - path avaiable is north and south
+	{
+		if ( doorOpened ) divUpNavigator.style.display = "block";
+		divDownNavigator.style.display = "block";
+	}
+	else if ( mapLocation == 15 ) // Secret room - only leave through teleporter
+	{
+	}
+	else
+	{
+		// North
+		if ( mapLocation >= 3 )
+			divUpNavigator.style.display = "block";
+		// South
+		if ( mapLocation <= 6 ) 
+			divDownNavigator.style.display = "block";
+		// East
+		if ( mapLocation % 3 != 2 )
+			divRightNavigator.style.display = "block";
+		// West
+		if ( mapLocation % 3 != 0 )
+			divLeftNavigator.style.display = "block";	 
+	}
+}
+
+function game_Over()
+{
+	window.clearInterval(windowTimer);
+	monster_stop();
+	input.style.display = "none";
+	window.removeEventListener("keydown", keydownHandler);
+	button.style.display = "none";
+	
+}
+
+function monster_start()
+{
+	monterTime = window.setInterval(function(){monster_random()},30000);
+}
+function monster_stop()
+{
+	window.clearInterval(monsterTimer);
+}
+
+function monster_random()
+{
+	monsterLocation = Math.floor((Math.random() * 9) );
+}
+
+function monster_verify()
+{
+	if ( monsterLocation == mapLocation )
+		{	
+			monster_stop();
+			divMonster.style.display = "block";
+			output.innerHTML = "<br>The monster is here. RUN!";
+			input.style.display = "none";
+			button.style.display = "none";
+		}
+		else
+		{
+			divMonster.style.display = "none";
+				input.style.display = "block";
+			button.style.display = "block";
+		}
+}
+</script>

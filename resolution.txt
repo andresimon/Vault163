@@ -1,0 +1,15 @@
+Take the card;
+north;
+use card;
+north;
+take pistol;
+north;
+use pistol;
+take minigun;
+north;
+take coordinates;
+south;
+south;
+east;
+use coordinates;
+use minigun.
